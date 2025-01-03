@@ -10,7 +10,7 @@
  **담당 파트**
  : (팀장) 플레이어, Mimosa 보스 담당
 -  [포트폴리오 팀 영상](https://youtu.be/rwTkUgP4ITA)
--  [포트폴리오 개인 영상](https://www.youtube.com/watch?v=s1WKke9D8nY) 
+-  [담당파트 세부설명 영상](https://www.youtube.com/watch?v=s1WKke9D8nY) 
 
 ## 세부 사항
 <details>

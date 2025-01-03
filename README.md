@@ -217,10 +217,3 @@
  
 -  [개인 포트폴리오 영상](https://www.youtube.com/watch?v=bpyLJ9WKLHo)
 
-## 세부 사항
-<details>
-<summary>접기/펼치기</summary>
-
-
-
-</details>

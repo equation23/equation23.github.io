@@ -69,6 +69,7 @@
   -  Collider Component를 활용하여 피격/타격에 대한 Collider를 원하는 객체에게 적용할 수 있도록 구현했습니다.
   -  Collider는 AABB, OBB, Sphere 의 3가지 종류를 구현했습니다.
 
+  - 타격 Collider와 피격 Collider가 충돌 시 타격방향, 데미지, 피격 레벨의 정보를 피격 대상에게 전달하여 피격상태로 전환하게 구현했습니다.
     
 - **필살기**
   

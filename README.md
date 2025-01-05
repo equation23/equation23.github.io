@@ -215,7 +215,53 @@
         m_bWingOff = bWingOff;
         m_fWingChange_Speed = 1.f / fOnTime;
     }
-    ```    
+    ```
+    ```c++
+    void CMonster_Mimosa::Wing_On_Off(_float fTimeDelta)
+    {
+        if (m_bWingOff)
+        {
+            m_fWingSize -= m_fWingChange_Speed * fTimeDelta;
+
+            if (m_fWingSize < 0.001f)
+                m_fWingSize = 0.001f;
+
+            unsigned int iWingRNum = m_pModelCom->Get_BoneIdx("attach_R_000");
+            unsigned int iWingLNum = m_pModelCom->Get_BoneIdx("attach_L_000");
+
+            _float4x4 matResult{};
+
+            XMStoreFloat4x4(&matResult, XMMatrixScaling(m_fWingSize, m_fWingSize, m_fWingSize) * XMLoadFloat4x4(m_pModelCom->Get_BoneBasicMatrixPtr("attach_R_000")));
+            m_pModelCom->Set_Basic_BoneMatrix(iWingRNum, XMLoadFloat4x4(&matResult));
+            XMStoreFloat4x4(&matResult, XMMatrixScaling(m_fWingSize, m_fWingSize, m_fWingSize) * XMLoadFloat4x4(m_pModelCom->Get_BoneBasicMatrixPtr("attach_L_000")));
+            m_pModelCom->Set_Basic_BoneMatrix(iWingLNum, XMLoadFloat4x4(&matResult));
+        }
+        else if (!m_bWingOff && m_fWingSize < 1.f)
+        {
+            m_fWingSize += m_fWingChange_Speed * fTimeDelta;
+
+            if (m_fWingSize > 1.f)
+                m_fWingSize = 1.f;
+
+            unsigned int iWingRNum = m_pModelCom->Get_BoneIdx("attach_R_000");
+            unsigned int iWingLNum = m_pModelCom->Get_BoneIdx("attach_L_000");
+
+            _float4x4 matResult{};
+
+            if(m_bRightWing_On)
+            {
+                XMStoreFloat4x4(&matResult, XMMatrixScaling(m_fWingSize, m_fWingSize, m_fWingSize) * XMLoadFloat4x4(m_pModelCom->Get_BoneBasicMatrixPtr("attach_R_000")));
+                m_pModelCom->Set_Basic_BoneMatrix(iWingRNum, XMLoadFloat4x4(&matResult));
+            }
+            if(m_bLeftWing_On)
+            {
+                XMStoreFloat4x4(&matResult, XMMatrixScaling(m_fWingSize, m_fWingSize, m_fWingSize) * XMLoadFloat4x4(m_pModelCom->Get_BoneBasicMatrixPtr("attach_L_000")));
+                m_pModelCom->Set_Basic_BoneMatrix(iWingLNum, XMLoadFloat4x4(&matResult));
+            }
+        }
+        }
+    ```
+    
   - BGM에 맞게 동작을 수행하기 위해 BPM을 시간으로 변환한 단위인 Beat를 바탕으로, 타이머가 Beat 최대치에 근접할 경우(95%지점) 에서 패턴을 재생하게 구현했습니다.
     
   - 스포트 라이트 패턴에서는 스포트 라이트의 위치를 겹치지 않고 무작위로 조정하기 위해, 재귀함수를 사용하여 이미 생성되어있는 위치에 생성되지 않게

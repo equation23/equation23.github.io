@@ -83,7 +83,7 @@
   - Hi-Fi Rush 게임에서 플레이어의 애니메이션은 항상 BGM의 BPM에 연동되어 동작합니다.   
     해당 기능을 구현하기 위해서 애니메이션 개별마다
     종료되는 BPM 길이를 설정하여 어떤 BGM이 배정되어도 항상 같은 BPM에 동작이 끝나게 구현했습니다.
-
+  
   - 애니메이션의 선형보간을 적용했습니다.   
     공격 애니메이션들의 보간을 하는 과정은 BPM에 연동되어 동작하게 구현하기 위해, 공격 모션마다 다음 공격으로 넘어가는 KeyFrame을 지정하여 해당하는 KeyFrame에서
     다음 공격 애니메이션으로 넘어가게 구현했습니다.
@@ -95,7 +95,36 @@
 
    - 콤보 분기를 최적화하기 위해 좌클릭, 우클릭, 한박자 쉬기로 이루어진 3진 Tree 구조로 구현했습니다.   
      플레이어 공격 입력시, 입력된 키의 Tree를 탐색하고 탐색한 노드의 값이 유효할 경우 해당 콤보 상태로 진입하게 구현했습니다.
+  ```c++
+     struct AttacK_Tree
+    {
+	    	AttacK_Tree* parent; // 부모 노드
+	    	AttacK_Tree* children[3]; // 자식 노드들
 
+		    // 노드의 데이터
+	    	bool bActivate;
+	    	string name;
+
+	    	// 생성자
+		    AttacK_Tree(const std::string& nodeName) : parent(nullptr), name(nodeName)
+		    {
+		    	 for (size_t i = 0; i < 3; i++)
+			       	children[i] = nullptr;
+
+			      bActivate = false;
+		    }
+
+		    ~AttacK_Tree()
+		    {
+		    	// 자식 노드들을 해제
+		    	for (AttacK_Tree* child : children)
+			    {
+			    	if(child)
+				    	delete child;
+			    }
+    		}
+    	};
+  ```
    - 공격 상태중 공격 입력시에는 BPM과 애니메이션을 동기화 하기 위해, 입력된 콤보를 저장한 후 일정 KeyFrame에서 재생하게 하여
      공격 애니메이션을 BPM에 맞고 끊기지 않게 구현했습니다.
      
@@ -180,10 +209,34 @@
  
   - 날개 파츠는 날개의 상위 본의 크기를 조절하는 함수를 추가하여 공중 상태시에는 크기를 키우고, 착지시에는 줄여 조절할 수 있게 구현했습니다.
 
+    ```c++
+    void CMonster_Mimosa::Wing_Controll(float fOnTime, bool bWingOff)
+    {
+        m_bWingOff = bWingOff;
+        m_fWingChange_Speed = 1.f / fOnTime;
+    }
+    ```    
   - BGM에 맞게 동작을 수행하기 위해 BPM을 시간으로 변환한 단위인 Beat를 바탕으로, 타이머가 Beat 최대치에 근접할 경우(95%지점) 에서 패턴을 재생하게 구현했습니다.
     
   - 스포트 라이트 패턴에서는 스포트 라이트의 위치를 겹치지 않고 무작위로 조정하기 위해, 재귀함수를 사용하여 이미 생성되어있는 위치에 생성되지 않게
     구현했습니다.
+ 
+    ```c++ 
+    void CMonster_Mimosa::Check_SpawnPos(_float4& fPos)
+    {
+        for (size_t i = 0; i < m_vecSpawnPos.size(); i++)
+       {
+           float distance = XMVectorGetX(XMVector3Length(XMLoadFloat4(&m_vecSpawnPos[i]) - XMLoadFloat4(&fPos)));
+           if (distance < 4.f)
+           {
+            fPos = { GAMEINSTANCE->Random_Float(-23.f,-1.f),-2.f,GAMEINSTANCE->Random_Float(-18.f,17.f) ,1 };
+            Check_SpawnPos(fPos);
+           }
+       }
+    }    
+    ```
+
+
 
   - 댄스 배틀 패턴은 Mimosa 보스 생성시 저장된 댄스 모션을 2중 STL List에 저장하여 한 댄스가 끝나면 pop하여 다음 댄스로 이어지게 구현했습니다.
  
@@ -208,15 +261,31 @@
 
 
  - **해결법**
-     1. 현재 Beat을 1/3으로 나눈 후, 애니메이션이 실행되는 순간 현재 Beat의 위치에 따라 재생속도를 조절했습니다.
+     1. 현재 Beat을 1/2으로 나눈 후, 애니메이션이 실행되는 순간 현재 Beat의 위치에 따라 재생속도를 조절했습니다.
   
-     2. 애니메이션 실행 명령이 들어왔을 때, 현재 Beat가 1/3 이하일 시에는 다음 Beat에 도달할때 까지 애니메이션 재생속도를   
-      증가시켜 Beat에 맞게 동작하게 구현했습니다.
+     2. 애니메이션 실행 명령이 들어왔을 때, 현재 Beat가 1/2 이하일 시에는 다음 Beat에 도달할때 까지 애니메이션 재생속도를   
+      빠르게 증가시켜 Beat에 맞게 동작하게 구현했습니다.
 
-     3. 반대로 Beat가 2/3 이상 구간부턴 재생속도를 증가시킬 시 애니메이션이 어색하게 빨라졌기 때문에 다른 방식으로 처리하였습니다.
+     3. 반대로 Beat가 1/2 이상 구간부턴 재생속도를 증가시킬 시 애니메이션이 어색하게 빨라졌기 때문에 다른 방식으로 처리하였습니다.
       
-     4. Beat가 2/3 구간 이상일 경우엔  Beat + (Beat - 현재Beat시간)만큼의 재생시간을 더하여 총 애니메이션 길이는 1Beat가 늘지만 Beat의 끝나는 타이밍에 애니메이션이
-      종료되게끔 구현하여 문제를 해결했습니다.
+     4. Beat가 1/2 구간 이상일 경우엔  1Beat + (애니메이션 재생Beat시간 / 현재 Beat)만큼의 재생시간을 곱하여 총 애니메이션 길이는 1Beat가 늘어 느려지지만
+        Beat의 끝나는 타이밍에 애니메이션이 종료되게끔 구현하여 문제를 해결했습니다.
+    
+    ```c++
+        else if ( // 3Beat 공격
+        m_pModelCom->Get_CurrentAnimIndex() == m_pModelCom->Get_StringAnimIndex("ch0000_atk-guitar_053") ||
+        m_pModelCom->Get_CurrentAnimIndex() == m_pModelCom->Get_StringAnimIndex("ch0000_atk-guitar_120") ||
+        m_pModelCom->Get_CurrentAnimIndex() == m_pModelCom->Get_StringAnimIndex("ch0000_atk-guitar_093")
+        )
+    {
+       if(fBeat < fBgmBeat*0.5f) // 현재비트가 BGM의 비트의 1/2구간인지 판별
+          animationOffset = fThree_Beat / fBgmBeat
+       else
+          animationOffset = fBeat + fThree_Beat / fBgmBeat
+       shared_ptr< CModel> Weapon_Model = static_pointer_cast<CModel>(m_pWeapon[0]->Find_Component(TEXT("Com_Model")));
+       Weapon_Model->Set_AnimSpeed(animationOffset); // 무기모델의 애니메이션 속도 조절
+       m_pModelCom->Play_Animation(fTimeDelta, (fTimeDelta)*animationOffset, 0.1f, fmatResult);
+    }
 
   ### 2-2. 공격 애니메이션 to Idle 모션
 

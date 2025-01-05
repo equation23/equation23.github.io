@@ -284,7 +284,7 @@
           animationOffset = fBeat + fThree_Beat / fBgmBeat
        shared_ptr< CModel> Weapon_Model = static_pointer_cast<CModel>(m_pWeapon[0]->Find_Component(TEXT("Com_Model")));
        Weapon_Model->Set_AnimSpeed(animationOffset); // 무기모델의 애니메이션 속도 조절
-       m_pModelCom->Play_Animation(fTimeDelta, (fTimeDelta)*animationOffset, 0.1f, fmatResult);
+       m_pModelCom->Play_Animation(fTimeDelta, (fTimeDelta)*animationOffset, 0.1f, fmatResult); // 애니메이션 재생 속도 반영
     }
 
   ### 2-2. 공격 애니메이션 to Idle 모션
@@ -300,6 +300,18 @@
       2. 상기 표시한 지점 이전에 공격 입력이 들어 올 경우 공격 입력을 저장한 후, 표시한 지점에서부터 재생하게 구현했습니다.
    
       3. 상기 표시한 지점 이후에 공격 입력이 들어 올 경우에는 입력이 들어와도 Idle 모션이 나오게 구현했습니다.
+    ```c++
+    void CChai::Adjust_Idle_Timing()
+    {
+        float fTimer = CBeat_Manager::Get_Instance()->Get_Timer(); // 현재 Beat 진행 시간
+        float fBeat = CBeat_Manager::Get_Instance()->Get_Beat();  // 현재 BGM의 Beat
+        float currentTimeRatio = fTimer / fBeat; // Beat의 진행도 퍼센트
+
+        m_pModelCom->Set_AnimIndexNonCancle("ch0000_idle_200", true); // Idle 애니메이션 재생
+        m_pModelCom->Set_CurrentTrackPosition(m_pModelCom->Get_Duration() * currentTimeRatio * 0.25f); // Beat비율에 맞는 애니메이션 재생 위치로 이동
+    }
+
+
 
 </details>
 

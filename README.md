@@ -43,6 +43,7 @@
 2. 트러블슈팅
    1. [BGM 애니메이션 동기화](#2-1-bgm-애니메이션-동기화)
    2. [공격 애니메이션 to Idle 모션](#2-2-공격-애니메이션-to-idle-모션)
+   3. [콤보 트리 최적화](#2-3-콤보-공격-최적화)
 ---------
 # 1. 개발 내역
 
@@ -95,36 +96,7 @@
 
    - 콤보 분기를 최적화하기 위해 좌클릭, 우클릭, 한박자 쉬기로 이루어진 3진 Tree 구조로 구현했습니다.   
      플레이어 공격 입력시, 입력된 키의 Tree를 탐색하고 탐색한 노드의 값이 유효할 경우 해당 콤보 상태로 진입하게 구현했습니다.
-  ```c++
-     struct AttacK_Tree
-    {
-	    	AttacK_Tree* parent; // 부모 노드
-	    	AttacK_Tree* children[3]; // 자식 노드들
-
-		    // 노드의 데이터
-	    	bool bActivate;
-	    	string name;
-
-	    	// 생성자
-		    AttacK_Tree(const std::string& nodeName) : parent(nullptr), name(nodeName)
-		    {
-		    	 for (size_t i = 0; i < 3; i++)
-			       	children[i] = nullptr;
-
-			      bActivate = false;
-		    }
-
-		    ~AttacK_Tree()
-		    {
-		    	// 자식 노드들을 해제
-		    	for (AttacK_Tree* child : children)
-			    {
-			    	if(child)
-				    	delete child;
-			    }
-    		}
-    	};
-  ```
+  
    - 공격 상태중 공격 입력시에는 BPM과 애니메이션을 동기화 하기 위해, 입력된 콤보를 저장한 후 일정 KeyFrame에서 재생하게 하여
      공격 애니메이션을 BPM에 맞고 끊기지 않게 구현했습니다.
      
@@ -307,17 +279,7 @@
 
 
  - **해결법**
-     1. 현재 Beat을 1/2으로 나눈 후, 애니메이션이 실행되는 순간 현재 Beat의 위치에 따라 재생속도를 조절했습니다.
-  
-     2. 애니메이션 실행 명령이 들어왔을 때, 현재 Beat가 1/2 이하일 시에는 다음 Beat에 도달할때 까지 애니메이션 재생속도를   
-      빠르게 증가시켜 Beat에 맞게 동작하게 구현했습니다.
-
-     3. 반대로 Beat가 1/2 이상 구간부턴 재생속도를 증가시킬 시 애니메이션이 어색하게 빨라졌기 때문에 다른 방식으로 처리하였습니다.
-      
-     4. Beat가 1/2 구간 이상일 경우엔  1Beat + (애니메이션 재생Beat시간 / 현재 Beat)만큼의 재생시간을 곱하여 총 애니메이션 길이는 1Beat가 늘어 느려지지만
-        Beat의 끝나는 타이밍에 애니메이션이 종료되게끔 구현하여 문제를 해결했습니다.
-    
-    ```c++
+      ```c++
         else if ( // 3Beat 공격
         m_pModelCom->Get_CurrentAnimIndex() == m_pModelCom->Get_StringAnimIndex("ch0000_atk-guitar_053") ||
         m_pModelCom->Get_CurrentAnimIndex() == m_pModelCom->Get_StringAnimIndex("ch0000_atk-guitar_120") ||
@@ -332,20 +294,25 @@
        Weapon_Model->Set_AnimSpeed(animationOffset); // 무기모델의 애니메이션 속도 조절
        m_pModelCom->Play_Animation(fTimeDelta, (fTimeDelta)*animationOffset, 0.1f, fmatResult); // 애니메이션 재생 속도 반영
     }
+     ```
+     1. 현재 Beat을 1/2으로 나눈 후, 애니메이션이 실행되는 순간 현재 Beat의 위치에 따라 재생속도를 조절했습니다.
+  
+     2. 애니메이션 실행 명령이 들어왔을 때, 현재 Beat가 1/2 이하일 시에는 다음 Beat에 도달할때 까지 애니메이션 재생속도를   
+      빠르게 증가시켜 Beat에 맞게 동작하게 구현했습니다.
+
+     3. 반대로 Beat가 1/2 이상 구간부턴 재생속도를 증가시킬 시 애니메이션이 어색하게 빨라졌기 때문에 다른 방식으로 처리하였습니다.
+      
+     4. Beat가 1/2 구간 이상일 경우엔  1Beat + (애니메이션 재생Beat시간 / 현재 Beat)만큼의 재생시간을 곱하여 총 애니메이션 길이는 1Beat가 늘어 느려지지만
+        Beat의 끝나는 타이밍에 애니메이션이 종료되게끔 구현하여 문제를 해결했습니다.
+    
 
   ### 2-2. 공격 애니메이션 to Idle 모션
 
   - **문제점**
-     1. 공격 애니메이션이 끝날 시 Idle 모션으로 전환되는 동작이 포함되어있습니다.
-   
-     2. 콤보 공격중 Idle 모션으로 전환되는 동작에 공격 입력 시, 공격 모션이 자연스럽게 이어지지 않는 문제가 발생하였습니다.
+    
+     - 콤보 공격중 **Idle 모션으로 전환되는 동작에 공격 입력 시, 공격 모션이 자연스럽게 이어지지 않는 문제가 발생하였습니다**
       
   - **해결법**
-      1. 공격 모션별 다음 공격 애니메이션으로 이어지는 부분을 확인하여 저장했습니다.
-   
-      2. 상기 표시한 지점 이전에 공격 입력이 들어 올 경우 공격 입력을 저장한 후, 표시한 지점에서부터 재생하게 구현했습니다.
-   
-      3. 상기 표시한 지점 이후에 공격 입력이 들어 올 경우에는 입력이 들어와도 Idle 모션이 나오게 구현했습니다.
     ```c++
     void CChai::Adjust_Idle_Timing()
     {
@@ -356,9 +323,54 @@
         m_pModelCom->Set_AnimIndexNonCancle("ch0000_idle_200", true); // Idle 애니메이션 재생
         m_pModelCom->Set_CurrentTrackPosition(m_pModelCom->Get_Duration() * currentTimeRatio * 0.25f); // Beat비율에 맞는 애니메이션 재생 위치로 이동
     }
+    ```
+      1. 공격 모션별 다음 공격 애니메이션으로 이어지는 부분을 확인하여 저장했습니다.
+   
+      2. 상기 표시한 지점 이전에 공격 입력이 들어 올 경우 공격 입력을 저장한 후, 표시한 지점에서부터 재생하게 구현했습니다.
+   
+      3. 상기 표시한 지점 이후에 공격 입력이 들어 올 경우에는 입력이 들어와도 Idle 모션이 나오게 구현했습니다.
 
+   ### 2-3. 콤보 공격 최적화
 
+  - **문제점**
+    
+    - 콤보 좌클릭, 우클릭, 한박자 쉬기로 이어진 공격의 분기가 너무 많아 **if, switch 문 사용시 코드가 너무 길고 유지보수하기 어려움**
 
+  - **해결법**
+    ```c++
+     struct AttacK_Tree
+    {
+	    	AttacK_Tree* parent; // 부모 노드
+	    	AttacK_Tree* children[3]; // 자식 노드들
+
+		    // 노드의 데이터
+	    	bool bActivate;
+	    	string name;
+
+	    	// 생성자
+		    AttacK_Tree(const std::string& nodeName) : parent(nullptr), name(nodeName)
+		    {
+		    	 for (size_t i = 0; i < 3; i++)
+			       	children[i] = nullptr;
+
+			      bActivate = false;
+		    }
+
+		    ~AttacK_Tree()
+		    {
+		    	// 자식 노드들을 해제
+		    	for (AttacK_Tree* child : children)
+			    {
+			    	if(child)
+				    	delete child;
+			    }
+    		}
+    	};
+    ```
+    
+  - 콤보는 좌클릭, 우클릭, 한박자 쉬기로 이루어져 있기 때문에 3진 트리의 구조를 사용하여 구현했습니다.
+
+  - 입력한 콤보를 Tree 객체의 Bool 값을 확인하여 현재 콤보가 어느 분기 있고, 다음 입력시 어느 분기로 진입할지 결정할 수 있게 구현했습니다.
 </details>
 
 -------------------------------
